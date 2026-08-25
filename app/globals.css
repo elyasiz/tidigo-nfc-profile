@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+:root { --background: #f7f8fc; --foreground: #183153; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Inter, ui-rounded, "Nunito", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, textarea, select { font: inherit; }
+a { text-decoration: none; }
+*:focus-visible { outline: 3px solid #ffd84d; outline-offset: 3px; }
+
+.field { display: flex; flex-direction: column; gap: .5rem; font-size: .875rem; font-weight: 800; }
+.field > span { color: #e04b45; }
+.field small { color: #8694a7; font-size: .72rem; font-weight: 700; }
+.field input, .field select, .field textarea, .input {
+  width: 100%; border: 1px solid #dce3ed; border-radius: .9rem; background: #fbfcfe;
+  padding: .8rem .9rem; color: #183153; font-weight: 650; transition: .2s ease;
+}
+.field textarea { min-height: 6.5rem; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus, .input:focus { border-color: #1553a6; outline: 3px solid #dceaff; }
+.button-primary, .button-secondary, .button-red {
+  display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 1rem;
+  padding: .85rem 1.25rem; font-size: .875rem; font-weight: 900; cursor: pointer; transition: .18s ease;
+}
+.button-primary { background: #1553a6; color: white; box-shadow: 0 6px 0 #0c397a; }
+.button-secondary { background: #edf2f8; color: #3f5878; }
+.button-red { background: #ef4e48; color: white; box-shadow: 0 7px 0 #c83232; }
+.button-primary:hover, .button-red:hover { transform: translateY(-2px); }
+.icon-choice { display: grid; height: 3.7rem; width: 3.7rem; place-items: center; cursor: pointer; border-radius: 1rem; border: 2px solid #e3e8f0; background: #fff; font-size: 1.8rem; transition: .18s ease; }
+.icon-choice.selected { border-color: #1553a6; background: #edf4ff; box-shadow: 0 0 0 3px #d7e7ff; transform: translateY(-2px); }
+.theme-choice { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem; cursor: pointer; border-radius: 1rem; border: 2px solid #e3e8f0; padding: .7rem; font-size: .85rem; }
+.theme-choice b { display: none; color: #1553a6; }
+.theme-choice.selected { border-color: #1553a6; background: #f2f7ff; }
+.theme-choice.selected b { display: block; }
+.card-action { border: 0; border-radius: .75rem; background: #eef4ff; padding: .65rem .5rem; text-align: center; color: #1553a6; font-size: .72rem; font-weight: 850; cursor: pointer; }
+.card-action:hover { background: #dfeaff; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; overflow-y: auto; background: rgba(10, 29, 59, .65); padding: 1.2rem; backdrop-filter: blur(7px); }
+.modal-card { position: relative; width: min(100%, 390px); border-radius: 2rem; background: white; padding: 1.7rem; text-align: center; box-shadow: 0 35px 100px rgba(4, 20, 48, .35); }
+@media (max-width: 520px) { .button-primary, .button-secondary, .button-red { width: 100%; } }
+
