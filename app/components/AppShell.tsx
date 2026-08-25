@@ -14,9 +14,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link className="flex items-center gap-3 rounded-2xl px-4 py-3 text-blue-100 hover:bg-white/10" href="/guide"><span>⌁</span> Panduan NFC</Link>
           </nav>
           <div className="mt-auto rounded-3xl bg-white/10 p-5">
-            <div className="mb-3 grid h-9 w-9 place-items-center rounded-full bg-[#64dba4] font-black text-[#123f8c]">C</div>
+            <div className="mb-3 h-12 w-12 overflow-hidden rounded-full border-2 border-white/80 bg-white shadow-sm">
+              <img src="/tigo.jpeg" alt="TIGO" className="h-full w-full scale-[1.7] object-cover" />
+            </div>
             <p className="truncate font-extrabold">Coach TIDIGO</p>
-            <p className="mt-1 text-xs font-bold text-blue-200">Akses publik tanpa ChatGPT</p>
           </div>
         </aside>
         <section className="min-w-0 flex-1 px-5 py-5 sm:px-9 sm:py-8 xl:px-12">
