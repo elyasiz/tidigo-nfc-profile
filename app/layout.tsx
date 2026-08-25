@@ -3,9 +3,11 @@ import './globals.css';
 
 const title = 'TIDIGO NFC Profile';
 const description = 'Satu sentuhan, satu cerita kreatif. Buat profil aman untuk karya NFC murid TIDIGO.';
+const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const siteUrl = productionHost ? `https://${productionHost}` : 'http://localhost:3000';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://tidigo-nfc-profile.maker-education-grou.chatgpt.site'),
+  metadataBase: new URL(siteUrl),
   title: { default: title, template: '%s' },
   description,
   icons: { icon: '/favicon.svg' },

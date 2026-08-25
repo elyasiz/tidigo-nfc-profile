@@ -5,9 +5,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-[#f7f8fc] text-[#183153]">
       <div className="mx-auto flex min-h-screen max-w-[1500px]">
         <aside className="hidden w-64 shrink-0 flex-col bg-[#123f8c] px-6 py-7 text-white lg:flex">
-          <Link href="/dashboard" className="mb-11 flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ffd84d] text-xl font-black text-[#123f8c]">T</span>
-            <span className="text-2xl font-black tracking-tight">tidigo</span>
+          <Link href="/dashboard" className="mb-11 rounded-2xl bg-white p-3 shadow-sm">
+            <img src="/tidigo-logo.png" alt="TIDIGO — From Ideas to 3D Objects" className="h-auto w-full" />
           </Link>
           <p className="mb-3 text-xs font-bold uppercase tracking-[.16em] text-blue-200">Workshop NFC</p>
           <nav className="space-y-2 text-sm font-bold">
@@ -22,9 +21,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
         <section className="min-w-0 flex-1 px-5 py-5 sm:px-9 sm:py-8 xl:px-12">
           <header className="mb-8 flex items-center justify-between lg:hidden">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ffd84d] text-xl font-black text-[#123f8c]">T</span>
-              <span className="text-xl font-black">tidigo</span>
+            <Link href="/dashboard" className="rounded-xl bg-white p-2 shadow-sm">
+              <img src="/tidigo-logo.png" alt="TIDIGO — From Ideas to 3D Objects" className="h-auto w-32" />
             </Link>
             <Link href="/guide" className="rounded-xl bg-white px-3 py-2 text-sm font-extrabold shadow-sm">Panduan NFC</Link>
           </header>

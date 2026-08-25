@@ -10,13 +10,13 @@ Website MVP untuk Workshop TIDIGO Sesi 4 — NFC Tag. Coach dapat membuat profil
 - Tautan publik unik dan QR code
 - Aktifkan/nonaktifkan serta reset link
 - Halaman profil mobile-first dengan `noindex`
-- Penyimpanan profil berbasis Cloudflare D1
+- Penyimpanan profil sementara untuk keperluan demo
 
 ## Demo
 
-<https://tidigo-nfc-profile.maker-education-grou.chatgpt.site>
+Tautan demo tersedia melalui deployment Vercel pada bagian **Deployments** repositori GitHub.
 
-> Demo dipublikasikan tanpa login ChatGPT agar mudah diuji. Untuk penggunaan produksi dengan data anak, tambahkan autentikasi coach dan tinjau kebijakan persetujuan orang tua/wali.
+> Demo dapat dibuka tanpa login ChatGPT. Data profil baru disimpan sementara dan dapat kembali ke data contoh ketika layanan dimulai ulang. Untuk penggunaan nyata, hubungkan database permanen, tambahkan autentikasi coach, dan tinjau kebijakan persetujuan orang tua/wali.
 
 ## Menjalankan secara lokal
 

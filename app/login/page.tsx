@@ -9,10 +9,7 @@ export default function LoginPage() {
       <div className="absolute -bottom-28 -right-16 h-96 w-96 rounded-full bg-[#65dba5]" />
       <div className="absolute right-[12%] top-[13%] text-6xl opacity-80">🚀</div>
       <section className="relative w-full max-w-md rounded-[2.4rem] bg-white p-7 shadow-[0_35px_100px_rgba(2,20,59,.35)] sm:p-10">
-        <div className="mb-8 flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#ffd84d] text-2xl font-black text-[#123f8c]">T</span>
-          <div><span className="text-2xl font-black tracking-tight">tidigo</span><p className="text-xs font-bold uppercase tracking-widest text-[#74849b]">NFC Profile</p></div>
-        </div>
+        <div className="mb-8"><img src="/tidigo-logo.png" alt="TIDIGO — From Ideas to 3D Objects" className="h-auto w-full max-w-[310px]" /><p className="mt-2 text-xs font-bold uppercase tracking-widest text-[#74849b]">NFC Profile</p></div>
         <span className="inline-flex rounded-full bg-[#e8f2ff] px-3 py-1 text-xs font-black text-[#1553a6]">WORKSHOP NFC</span>
         <h1 className="mt-4 text-4xl font-black leading-tight">Satu sentuhan,<br />satu cerita kreatif.</h1>
         <p className="mt-4 text-sm font-medium leading-6 text-[#6d7f98]">Kelola profil NFC murid dengan data yang aman, sederhana, dan penuh warna.</p>
