@@ -1,3 +1,5 @@
+import { get, put } from '@vercel/blob';
+
 export type Profile = {
   id: string; publicId: string; coachId: string; displayName: string; age: number | null;
   hobbies: string[]; dreamJob: string; learningInterest: string; funFact: string;
@@ -8,12 +10,55 @@ export type Profile = {
 export type ProfileInput = Omit<Profile, 'id' | 'publicId' | 'coachId' | 'isActive' | 'createdAt' | 'updatedAt'>;
 
 type ProfileStore = Map<string, Profile>;
+const STORE_PATH = 'tidigo/profiles.json';
+const COACH_ID = 'tidigo-public-workshop';
 const globalStore = globalThis as typeof globalThis & { tidigoProfiles?: ProfileStore };
-const profiles = globalStore.tidigoProfiles ?? new Map<string, Profile>();
-globalStore.tidigoProfiles = profiles;
 
 const allowedIcons = ['rocket', 'robot', 'star', 'flower', 'dino'];
 const allowedThemes = ['sky', 'sunny', 'mint', 'grape'];
+
+function exampleProfiles(coachId = COACH_ID): Profile[] {
+  const createdAt = '2026-08-20T08:00:00.000Z';
+  return [
+    { id: 'profile-ardi', publicId: 'p7K4mQ2xN8', coachId, displayName: 'Ardi', age: 10, hobbies: ['Menggambar', 'Sepak bola', 'Membuat robot'], dreamJob: 'Insinyur robot', learningInterest: 'Teknologi dan luar angkasa', funFact: 'Aku bisa membuat pesawat kertas yang terbang jauh.', icon: 'rocket', theme: 'sky', projectMessage: 'NFC tag ini dibuat di Workshop TIDIGO.', consentChecked: true, isActive: true, createdAt, updatedAt: createdAt },
+    { id: 'profile-naya', publicId: 'w3F7nR9cL5', coachId, displayName: 'Naya', age: 9, hobbies: ['Menggambar', 'Eksperimen sains'], dreamJob: 'Ilustrator buku', learningInterest: 'Hewan dan tumbuhan', funFact: 'Aku punya koleksi daun dengan bentuk unik.', icon: 'flower', theme: 'mint', projectMessage: 'Karya kreatif dari Workshop TIDIGO.', consentChecked: true, isActive: true, createdAt, updatedAt: createdAt },
+    { id: 'profile-bimo', publicId: 'k8M2vT6qS4', coachId, displayName: 'Bimo', age: 11, hobbies: ['Coding', 'Sepak bola'], dreamJob: 'Pembuat game', learningInterest: 'Komputer dan matematika', funFact: 'Aku bisa menyelesaikan kubus rubik dalam dua menit.', icon: 'robot', theme: 'grape', projectMessage: 'Dibuat dengan seru di Workshop TIDIGO.', consentChecked: true, isActive: true, createdAt, updatedAt: createdAt },
+  ];
+}
+
+function memoryStore() {
+  if (!globalStore.tidigoProfiles) {
+    globalStore.tidigoProfiles = new Map(exampleProfiles().map((profile) => [profile.id, profile]));
+  }
+  return globalStore.tidigoProfiles;
+}
+
+async function readStore(): Promise<ProfileStore> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return memoryStore();
+
+  const result = await get(STORE_PATH, { access: 'private' });
+  if (!result || result.statusCode !== 200 || !result.stream) {
+    const seeded = new Map(exampleProfiles().map((profile) => [profile.id, profile]));
+    await writeStore(seeded);
+    return seeded;
+  }
+
+  const profiles = await new Response(result.stream).json() as Profile[];
+  return new Map(profiles.map((profile) => [profile.id, profile]));
+}
+
+async function writeStore(store: ProfileStore) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    globalStore.tidigoProfiles = new Map(store);
+    return;
+  }
+
+  await put(STORE_PATH, JSON.stringify([...store.values()]), {
+    access: 'private',
+    contentType: 'application/json',
+    allowOverwrite: true,
+  });
+}
 
 function clean(value: string, max: number) { return value.replace(/[<>]/g, '').trim().slice(0, max); }
 
@@ -40,52 +85,62 @@ function token() {
 }
 
 export async function createProfile(coachId: string, unsafe: ProfileInput, publicId?: string) {
+  const store = await readStore();
   const input = validateProfile(unsafe); const id = crypto.randomUUID();
   const now = new Date().toISOString(); const publicToken = publicId ?? token();
-  profiles.set(id, { ...input, id, publicId: publicToken, coachId, isActive: true, createdAt: now, updatedAt: now });
+  store.set(id, { ...input, id, publicId: publicToken, coachId, isActive: true, createdAt: now, updatedAt: now });
+  await writeStore(store);
   return { id, publicId: publicToken };
 }
 
-export async function seedExampleProfiles(coachId: string) {
-  if ([...profiles.values()].some((profile) => profile.coachId === coachId)) return;
-  const examples: Array<[ProfileInput, string]> = [
-    [{ displayName: 'Ardi', age: 10, hobbies: ['Menggambar', 'Sepak bola', 'Membuat robot'], dreamJob: 'Insinyur robot', learningInterest: 'Teknologi dan luar angkasa', funFact: 'Aku bisa membuat pesawat kertas yang terbang jauh.', icon: 'rocket', theme: 'sky', projectMessage: 'NFC tag ini dibuat di Workshop TIDIGO.', consentChecked: true }, 'p7K4mQ2xN8'],
-    [{ displayName: 'Naya', age: 9, hobbies: ['Menggambar', 'Eksperimen sains'], dreamJob: 'Ilustrator buku', learningInterest: 'Hewan dan tumbuhan', funFact: 'Aku punya koleksi daun dengan bentuk unik.', icon: 'flower', theme: 'mint', projectMessage: 'Karya kreatif dari Workshop TIDIGO.', consentChecked: true }, 'w3F7nR9cL5'],
-    [{ displayName: 'Bimo', age: 11, hobbies: ['Coding', 'Sepak bola'], dreamJob: 'Pembuat game', learningInterest: 'Komputer dan matematika', funFact: 'Aku bisa menyelesaikan kubus rubik dalam dua menit.', icon: 'robot', theme: 'grape', projectMessage: 'Dibuat dengan seru di Workshop TIDIGO.', consentChecked: true }, 'k8M2vT6qS4'],
-  ];
-  for (const [profile, publicId] of examples) await createProfile(coachId, profile, publicId);
+export async function seedExampleProfiles(_coachId: string) {
+  await readStore();
 }
 
 export async function listProfiles(coachId: string) {
-  await seedExampleProfiles(coachId);
-  return [...profiles.values()].filter((profile) => profile.coachId === coachId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const store = await readStore();
+  return [...store.values()].filter((profile) => profile.coachId === coachId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function getProfile(id: string, coachId: string) {
-  const profile = profiles.get(id); return profile?.coachId === coachId ? profile : null;
+  const store = await readStore();
+  const profile = store.get(id); return profile?.coachId === coachId ? profile : null;
 }
 
 export async function getPublicProfile(publicId: string) {
-  await seedExampleProfiles('tidigo-public-workshop');
-  return [...profiles.values()].find((profile) => profile.publicId === publicId && profile.isActive) ?? null;
+  const store = await readStore();
+  return [...store.values()].find((profile) => profile.publicId === publicId && profile.isActive) ?? null;
 }
 
 export async function updateProfile(id: string, coachId: string, unsafe: ProfileInput) {
-  const current = await getProfile(id, coachId); if (!current) return;
-  profiles.set(id, { ...current, ...validateProfile(unsafe), updatedAt: new Date().toISOString() });
+  const store = await readStore();
+  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
+  store.set(id, { ...current, ...validateProfile(unsafe), updatedAt: new Date().toISOString() });
+  await writeStore(store);
+  return true;
 }
 
 export async function setProfileStatus(id: string, coachId: string, active: boolean) {
-  const current = await getProfile(id, coachId); if (!current) return;
-  profiles.set(id, { ...current, isActive: active, updatedAt: new Date().toISOString() });
+  const store = await readStore();
+  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
+  store.set(id, { ...current, isActive: active, updatedAt: new Date().toISOString() });
+  await writeStore(store);
+  return true;
 }
 
 export async function removeProfile(id: string, coachId: string) {
-  const current = await getProfile(id, coachId); if (current) profiles.delete(id);
+  const store = await readStore();
+  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
+  store.delete(id);
+  await writeStore(store);
+  return true;
 }
 
 export async function resetPublicLink(id: string, coachId: string) {
-  const current = await getProfile(id, coachId); if (!current) return;
-  profiles.set(id, { ...current, publicId: token(), updatedAt: new Date().toISOString() });
+  const store = await readStore();
+  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
+  store.set(id, { ...current, publicId: token(), updatedAt: new Date().toISOString() });
+  await writeStore(store);
+  return true;
 }
 

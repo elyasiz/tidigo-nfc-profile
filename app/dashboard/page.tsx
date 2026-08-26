@@ -1,4 +1,4 @@
-import { listProfiles, seedExampleProfiles } from '../../db/profiles';
+import { listProfiles } from '../../db/profiles';
 import { AppShell } from '../components/AppShell';
 import { ProfileTools } from '../components/ProfileTools';
 import { icons, themes } from '../profile-config';
@@ -7,7 +7,6 @@ export const dynamic = 'force-dynamic';
 const COACH_ID = 'tidigo-public-workshop';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ created?: string; updated?: string }> }) {
-  await seedExampleProfiles(COACH_ID);
   const profiles = await listProfiles(COACH_ID);
   const query = await searchParams;
   const activeCount = profiles.filter((profile) => profile.isActive).length;
@@ -35,6 +34,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <ProfileTools id={profile.id} publicId={profile.publicId} active={profile.isActive} />
             </article>;
           })}
+          {profiles.length === 0 && <div className="rounded-[1.75rem] border border-dashed border-[#ccd6e5] bg-white p-8 text-center md:col-span-2 xl:col-span-3"><p className="text-4xl">✨</p><h3 className="mt-3 text-xl font-black">Belum ada profil murid</h3><p className="mt-2 text-sm font-medium text-[#73829a]">Buat profil baru untuk mulai menyiapkan link NFC.</p><a href="/profiles/new" className="button-red mt-5 inline-block">＋ Buat Profil Baru</a></div>}
         </div>
       </section>
     </AppShell>

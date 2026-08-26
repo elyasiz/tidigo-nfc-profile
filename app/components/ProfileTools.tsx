@@ -21,13 +21,16 @@ export function ProfileTools({ id, publicId, active }: { id: string; publicId: s
         <button className="card-action" type="button" onClick={copy}>{copied ? '✓ Tersalin' : '⧉ Salin link'}</button>
         <button className="card-action" type="button" onClick={() => setOpen(true)}>▦ QR code</button>
         <a className="card-action" href={`/profiles/${id}/edit`}>✎ Edit</a>
+        <form className="col-span-2" action={deleteProfileAction} onSubmit={(e) => { if (!confirm('Hapus profil ini secara permanen?')) e.preventDefault(); }}>
+          <input type="hidden" name="id" value={id} />
+          <button className="card-action w-full !bg-[#fff0f0] !text-[#c93434] hover:!bg-[#ffe2e2]" type="submit">⌫ Hapus profil</button>
+        </form>
       </div>
       <details className="mt-3 rounded-xl border border-[#e5eaf2] px-3 py-2 text-xs font-bold text-[#718099]">
         <summary className="cursor-pointer">Tindakan lainnya</summary>
         <div className="mt-3 grid gap-2">
           <form action={statusProfileAction}><input type="hidden" name="id" value={id} /><input type="hidden" name="active" value={String(!active)} /><button className="text-left hover:text-[#1553a6]" type="submit">{active ? 'Nonaktifkan profil' : 'Aktifkan profil'}</button></form>
           <form action={resetLinkAction} onSubmit={(e) => { if (!confirm('Buat link baru? Link NFC lama tidak akan berfungsi.')) e.preventDefault(); }}><input type="hidden" name="id" value={id} /><button className="text-left hover:text-[#1553a6]" type="submit">Buat ulang link publik</button></form>
-          <form action={deleteProfileAction} onSubmit={(e) => { if (!confirm('Hapus profil ini secara permanen?')) e.preventDefault(); }}><input type="hidden" name="id" value={id} /><button className="text-left text-[#d64242]" type="submit">Hapus profil</button></form>
         </div>
       </details>
       {open && <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="QR code profil" onClick={() => setOpen(false)}>
