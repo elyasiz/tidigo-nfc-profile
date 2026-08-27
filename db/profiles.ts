@@ -1,4 +1,4 @@
-import { get, put } from '@vercel/blob';
+import { del, get, list, put } from '@vercel/blob';
 
 export type Profile = {
   id: string; publicId: string; coachId: string; displayName: string; age: number | null;
@@ -10,7 +10,9 @@ export type Profile = {
 export type ProfileInput = Omit<Profile, 'id' | 'publicId' | 'coachId' | 'isActive' | 'createdAt' | 'updatedAt'>;
 
 type ProfileStore = Map<string, Profile>;
-const STORE_PATH = 'tidigo/profiles.json';
+const LEGACY_STORE_PATH = 'tidigo/profiles.json';
+const PROFILE_PREFIX = 'tidigo/profiles/';
+const MIGRATION_MARKER_PATH = 'tidigo/meta/profile-records-v1.json';
 const COACH_ID = 'tidigo-public-workshop';
 const globalStore = globalThis as typeof globalThis & { tidigoProfiles?: ProfileStore };
 
@@ -33,31 +35,89 @@ function memoryStore() {
   return globalStore.tidigoProfiles;
 }
 
-async function readStore(): Promise<ProfileStore> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return memoryStore();
-
-  const result = await get(STORE_PATH, { access: 'private' });
-  if (!result || result.statusCode !== 200 || !result.stream) {
-    const seeded = new Map(exampleProfiles().map((profile) => [profile.id, profile]));
-    await writeStore(seeded);
-    return seeded;
-  }
-
-  const profiles = await new Response(result.stream).json() as Profile[];
-  return new Map(profiles.map((profile) => [profile.id, profile]));
+function usesBlob() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-async function writeStore(store: ProfileStore) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    globalStore.tidigoProfiles = new Map(store);
-    return;
-  }
+function isSafeId(id: string) {
+  return /^[A-Za-z0-9-]{1,64}$/.test(id);
+}
 
-  await put(STORE_PATH, JSON.stringify([...store.values()]), {
+function profilePath(id: string) {
+  return `${PROFILE_PREFIX}${id}.json`;
+}
+
+async function readJsonBlob<T>(pathname: string): Promise<T | null> {
+  const result = await get(pathname, { access: 'private' });
+  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  return new Response(result.stream).json() as Promise<T>;
+}
+
+async function writeProfile(profile: Profile) {
+  await put(profilePath(profile.id), JSON.stringify(profile), {
     access: 'private',
     contentType: 'application/json',
     allowOverwrite: true,
   });
+}
+
+async function listProfilePaths() {
+  const paths: string[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const page = await list({ prefix: PROFILE_PREFIX, cursor, limit: 1000 });
+    paths.push(...page.blobs.map((blob) => blob.pathname));
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+
+  return paths.filter((pathname) => pathname.endsWith('.json'));
+}
+
+async function ensureBlobStore() {
+  const migrated = await get(MIGRATION_MARKER_PATH, { access: 'private' });
+  if (migrated?.statusCode === 200) return;
+
+  const existingPaths = await listProfilePaths();
+  const existingIds = new Set(existingPaths.map((pathname) => pathname.slice(PROFILE_PREFIX.length, -5)));
+  const legacyProfiles = await readJsonBlob<Profile[]>(LEGACY_STORE_PATH);
+  const profilesToMigrate = legacyProfiles?.length ? legacyProfiles : exampleProfiles();
+
+  await Promise.all(
+    profilesToMigrate
+      .filter((profile) => isSafeId(profile.id) && !existingIds.has(profile.id))
+      .map(writeProfile),
+  );
+
+  await put(MIGRATION_MARKER_PATH, JSON.stringify({ migratedAt: new Date().toISOString() }), {
+    access: 'private',
+    contentType: 'application/json',
+    allowOverwrite: true,
+  });
+}
+
+async function listAllProfiles() {
+  if (!usesBlob()) return [...memoryStore().values()];
+  await ensureBlobStore();
+  const paths = await listProfilePaths();
+  const profiles = await Promise.all(paths.map((pathname) => readJsonBlob<Profile>(pathname)));
+  return profiles.filter((profile): profile is Profile => Boolean(profile));
+}
+
+async function readProfile(id: string) {
+  if (!isSafeId(id)) return null;
+  if (!usesBlob()) return memoryStore().get(id) ?? null;
+  await ensureBlobStore();
+  return readJsonBlob<Profile>(profilePath(id));
+}
+
+async function saveProfile(profile: Profile) {
+  if (!usesBlob()) {
+    memoryStore().set(profile.id, profile);
+    return;
+  }
+  await ensureBlobStore();
+  await writeProfile(profile);
 }
 
 function clean(value: string, max: number) { return value.replace(/[<>]/g, '').trim().slice(0, max); }
@@ -85,62 +145,54 @@ function token() {
 }
 
 export async function createProfile(coachId: string, unsafe: ProfileInput, publicId?: string) {
-  const store = await readStore();
   const input = validateProfile(unsafe); const id = crypto.randomUUID();
   const now = new Date().toISOString(); const publicToken = publicId ?? token();
-  store.set(id, { ...input, id, publicId: publicToken, coachId, isActive: true, createdAt: now, updatedAt: now });
-  await writeStore(store);
+  await saveProfile({ ...input, id, publicId: publicToken, coachId, isActive: true, createdAt: now, updatedAt: now });
   return { id, publicId: publicToken };
 }
 
 export async function seedExampleProfiles(_coachId: string) {
-  await readStore();
+  if (usesBlob()) await ensureBlobStore();
+  else memoryStore();
 }
 
 export async function listProfiles(coachId: string) {
-  const store = await readStore();
-  return [...store.values()].filter((profile) => profile.coachId === coachId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const profiles = await listAllProfiles();
+  return profiles.filter((profile) => profile.coachId === coachId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function getProfile(id: string, coachId: string) {
-  const store = await readStore();
-  const profile = store.get(id); return profile?.coachId === coachId ? profile : null;
+  const profile = await readProfile(id);
+  return profile?.coachId === coachId ? profile : null;
 }
 
 export async function getPublicProfile(publicId: string) {
-  const store = await readStore();
-  return [...store.values()].find((profile) => profile.publicId === publicId && profile.isActive) ?? null;
+  const profiles = await listAllProfiles();
+  return profiles.find((profile) => profile.publicId === publicId && profile.isActive) ?? null;
 }
 
 export async function updateProfile(id: string, coachId: string, unsafe: ProfileInput) {
-  const store = await readStore();
-  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
-  store.set(id, { ...current, ...validateProfile(unsafe), updatedAt: new Date().toISOString() });
-  await writeStore(store);
+  const current = await readProfile(id); if (!current || current.coachId !== coachId) return false;
+  await saveProfile({ ...current, ...validateProfile(unsafe), updatedAt: new Date().toISOString() });
   return true;
 }
 
 export async function setProfileStatus(id: string, coachId: string, active: boolean) {
-  const store = await readStore();
-  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
-  store.set(id, { ...current, isActive: active, updatedAt: new Date().toISOString() });
-  await writeStore(store);
+  const current = await readProfile(id); if (!current || current.coachId !== coachId) return false;
+  await saveProfile({ ...current, isActive: active, updatedAt: new Date().toISOString() });
   return true;
 }
 
 export async function removeProfile(id: string, coachId: string) {
-  const store = await readStore();
-  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
-  store.delete(id);
-  await writeStore(store);
+  const current = await readProfile(id); if (!current || current.coachId !== coachId) return false;
+  if (!usesBlob()) memoryStore().delete(id);
+  else await del(profilePath(id));
   return true;
 }
 
 export async function resetPublicLink(id: string, coachId: string) {
-  const store = await readStore();
-  const current = store.get(id); if (!current || current.coachId !== coachId) return false;
-  store.set(id, { ...current, publicId: token(), updatedAt: new Date().toISOString() });
-  await writeStore(store);
+  const current = await readProfile(id); if (!current || current.coachId !== coachId) return false;
+  await saveProfile({ ...current, publicId: token(), updatedAt: new Date().toISOString() });
   return true;
 }
 

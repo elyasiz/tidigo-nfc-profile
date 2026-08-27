@@ -11,7 +11,7 @@ Website MVP untuk Workshop TIDIGO Sesi 4 — NFC Tag. Coach dapat membuat profil
 - Aktifkan/nonaktifkan serta reset link
 - Halaman profil mobile-first dengan `noindex`
 - Profil dapat dibuat, diedit, dan dihapus dari dashboard
-- Penyimpanan profil permanen melalui Vercel Blob
+- Penyimpanan profil permanen melalui Vercel Blob, satu catatan terpisah per profil agar perubahan profil lain tidak saling menimpa
 
 ## Demo
 
